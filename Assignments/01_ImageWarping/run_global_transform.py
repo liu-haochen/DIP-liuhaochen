@@ -26,13 +26,37 @@ def apply_transform(image, scale, rotation, translation_x, translation_y, flip_h
         transformed_image[row,:,:] = image[inverse_fx[row],inverse_fy,:]
     transformed_image =transformed_image.astype(np.uint8)    
 
+    #翻转
+    if(flip_horizontal):
+        transformed_image = transformed_image[:,::-1,:]
+    #旋转+偏移
 
+    theta = -np.pi * rotation/180
+    central =  np.array(image_new.shape[0:2])//2
+    f_row = np.zeros(image_new.shape[0:2])
+    f_col = np.zeros(image_new.shape[0:2])
+    f_row = np.repeat(np.linspace(0,f_row.shape[0]-1,f_row.shape[0]),f_row.shape[1]).reshape(f_row.shape)
+    f_col = np.tile(np.linspace(0,f_col.shape[1]-1,f_col.shape[1]),f_col.shape[0]).reshape(f_col.shape)
+    f_row_n = ( (f_col-central[1])*np.sin(theta) + (f_row-central[0])*np.cos(-theta) +central[0] ).astype(int)
+    f_col_n = ( (f_col-central[1])*np.cos(-theta) + (f_row-central[0])*np.sin(-theta) +central[1] ).astype(int)
+    # f_row = np.clip(f_row_n,0,image_new.shape[0]-1)
+    # f_col = np.clip(f_col_n,0,image_new.shape[1]-1)
+    f_row = np.mod(f_row_n-translation_y,image_new.shape[0])
+    f_col = np.mod(f_col_n-translation_x,image_new.shape[1])
 
     # 放到image_new上
-    image_new[0:new_s[0],0:new_s[1],:] = transformed_image
-    # print("ff")
-    ### FILL: Apply Composition Transform 
-    # Note: for scale and rotation, implement them around the center of the image （围绕图像中心进行放缩和旋转）
+    start_x = max((image_new.shape[0] - new_s[0])//2,0)
+    end_x = start_x+new_s[0]
+
+    start_y = max((image_new.shape[1] - new_s[1])//2,0)
+    end_y = start_y+new_s[1]
+    
+    image_new[start_x:end_x,start_y:end_y,:] = transformed_image
+
+    #旋转+偏移
+    image_new = image_new[f_row,f_col]
+    
+
 
     return image_new
 
