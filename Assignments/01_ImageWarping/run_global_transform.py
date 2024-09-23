@@ -12,16 +12,29 @@ def apply_transform(image, scale, rotation, translation_x, translation_y, flip_h
     # Convert the image from PIL format to a NumPy array
     image = np.array(image)
     # Pad the image to avoid boundary issues
-    pad_size = min(image.shape[0], image.shape[1]) // 2
+    pad_size = max(image.shape[0], image.shape[1]) // 2
     image_new = np.zeros((pad_size*2+image.shape[0], pad_size*2+image.shape[1], 3), dtype=np.uint8) + np.array((255,255,255), dtype=np.uint8).reshape(1,1,3)
-    image_new[pad_size:pad_size+image.shape[0], pad_size:pad_size+image.shape[1]] = image
-    image = np.array(image_new)
-    transformed_image = np.array(image)
+    # image_new[pad_size:pad_size+image.shape[0], pad_size:pad_size+image.shape[1]] = image
+    # image = np.array(image_new)
+    #放缩
+    pre_s = (image.shape[0],image.shape[1],3,)
+    new_s = (int(image.shape[0]*scale),int(image.shape[1]*scale),3,)
+    transformed_image = np.zeros(new_s)
+    inverse_fx = np.linspace(0,pre_s[0]-1,new_s[0]).astype(int)
+    inverse_fy = np.linspace(0,pre_s[1]-1,new_s[1]).astype(int)
+    for row in range(new_s[0]):
+        transformed_image[row,:,:] = image[inverse_fx[row],inverse_fy,:]
+    transformed_image =transformed_image.astype(np.uint8)    
 
+
+
+    # 放到image_new上
+    image_new[0:new_s[0],0:new_s[1],:] = transformed_image
+    # print("ff")
     ### FILL: Apply Composition Transform 
     # Note: for scale and rotation, implement them around the center of the image （围绕图像中心进行放缩和旋转）
 
-    return transformed_image
+    return image_new
 
 # Gradio Interface
 def interactive_transform():
