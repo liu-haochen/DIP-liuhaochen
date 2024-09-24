@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import gradio as gr
+import scipy
+import scipy.stats
 
 # 初始化全局变量，存储控制点和目标点
 points_src = []
@@ -47,11 +49,49 @@ def point_guided_deformation(image, source_pts, target_pts, alpha=1.0, eps=1e-8)
     ------
         A deformed image.
     """
-    
+    # temp = source_pts
+    # source_pts = target_pts
+    # target_pts = temp 
+
     warped_image = np.array(image)
     ### FILL: 基于MLS or RBF 实现 image warping
 
-    return warped_image
+    #vector1drow = np.repeat(np.linspace(0,warped_image.shape[0]-1,warped_image.shape[0]),warped_image.shape[1] )
+    #vector1dcol = np.tile(np.linspace(0,warped_image.shape[1]-1,warped_image.shape[1]),warped_image.shape[0])
+    vector2d = np.array([np.repeat(np.linspace(0,warped_image.shape[0]-1,warped_image.shape[0]),warped_image.shape[1] ),
+                         np.tile(np.linspace(0,warped_image.shape[1]-1,warped_image.shape[1]),warped_image.shape[0])]).transpose()
+    #scipy.stats.norm.pdf()
+    #(target_pts - source_pts)
+    alpha = np.sqrt(np.sum((target_pts - source_pts)**2)/target_pts.shape[0])/100
+    #alpha = np.sqrt(warped_image.shape[0]*warped_image.shape[1])/5
+    gm = np.reshape(np.tile(target_pts,target_pts.shape[0]),(target_pts.shape[0],target_pts.shape[0],2))- (np.reshape(np.tile(target_pts,target_pts.shape[0]),(target_pts.shape[0],target_pts.shape[0],2)).transpose(1,0,2))
+    gm = np.sqrt( np.sum( gm**2,2))
+    gm = scipy.stats.norm.pdf(gm,0,alpha)
+    #beta = 1/scipy.stats.norm.pdf(0,0,alpha)
+    #gm = gm*beta
+    #A=  g   X
+    #    X^T 0
+    X = np.column_stack((np.ones(target_pts.shape[0]),target_pts))
+    Zeros = np.zeros((3,3))
+    A = np.row_stack((np.column_stack((gm,X)),np.column_stack((X.transpose(),Zeros)) ))
+    b= np.row_stack((source_pts,np.zeros((3,2))))
+    s = np.linalg.lstsq(A,b)[0]
+    s0 = s[0:target_pts.shape[0],:]
+    s1 = s[target_pts.shape[0]+1:,:]
+    c = s[target_pts.shape[0],:]
+    x_i_minus_x_j = np.tile(vector2d,target_pts.shape[0]).reshape(vector2d.shape[0],target_pts.shape[0],2)-target_pts
+    x_i_minus_x_j = np.sqrt( np.sum( x_i_minus_x_j**2,2))
+    g_x_i_minus_x_j = scipy.stats.norm.pdf(x_i_minus_x_j,0,alpha)
+    resvector2d = g_x_i_minus_x_j.dot(s0)+vector2d.dot(s1)+c
+    iresvector2d = resvector2d.astype(int)
+    resrow = iresvector2d[:,0].reshape(warped_image.shape[0],warped_image.shape[1])
+    rescol = iresvector2d[:,1].reshape(warped_image.shape[0],warped_image.shape[1])
+    resrown = np.clip(resrow,0,warped_image.shape[0]-1)
+    rescoln = np.clip(rescol,0,warped_image.shape[1]-1)
+    new_warped_image = warped_image[resrown,rescoln]
+    warped_image[resrown[target_pts[0,0],target_pts[0,1]],rescoln[target_pts[0,0],target_pts[0,1]]]
+    new_warped_image[source_pts[0,0],source_pts[0,1]]  
+    return new_warped_image
 
 def run_warping():
     global points_src, points_dst, image ### fetch global variables
