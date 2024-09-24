@@ -52,46 +52,35 @@ def point_guided_deformation(image, source_pts, target_pts, alpha=1.0, eps=1e-8)
     # temp = source_pts
     # source_pts = target_pts
     # target_pts = temp 
-
+    source_pts = source_pts[:,::-1]
+    target_pts = target_pts[:,::-1]
     warped_image = np.array(image)
-    ### FILL: 基于MLS or RBF 实现 image warping
-
-    #vector1drow = np.repeat(np.linspace(0,warped_image.shape[0]-1,warped_image.shape[0]),warped_image.shape[1] )
-    #vector1dcol = np.tile(np.linspace(0,warped_image.shape[1]-1,warped_image.shape[1]),warped_image.shape[0])
+    ### FILL: 基于RBF 逆变换 实现 image warping
+    #每个像素点坐标
     vector2d = np.array([np.repeat(np.linspace(0,warped_image.shape[0]-1,warped_image.shape[0]),warped_image.shape[1] ),
                          np.tile(np.linspace(0,warped_image.shape[1]-1,warped_image.shape[1]),warped_image.shape[0])]).transpose()
-    #scipy.stats.norm.pdf()
-    #(target_pts - source_pts)
-    alpha = np.sqrt(np.sum((target_pts - source_pts)**2)/target_pts.shape[0])/100
-    #alpha = np.sqrt(warped_image.shape[0]*warped_image.shape[1])/5
-    gm = np.reshape(np.tile(target_pts,target_pts.shape[0]),(target_pts.shape[0],target_pts.shape[0],2))- (np.reshape(np.tile(target_pts,target_pts.shape[0]),(target_pts.shape[0],target_pts.shape[0],2)).transpose(1,0,2))
-    gm = np.sqrt( np.sum( gm**2,2))
-    gm = scipy.stats.norm.pdf(gm,0,alpha)
-    #beta = 1/scipy.stats.norm.pdf(0,0,alpha)
-    #gm = gm*beta
-    #A=  g   X
-    #    X^T 0
-    X = np.column_stack((np.ones(target_pts.shape[0]),target_pts))
-    Zeros = np.zeros((3,3))
-    A = np.row_stack((np.column_stack((gm,X)),np.column_stack((X.transpose(),Zeros)) ))
-    b= np.row_stack((source_pts,np.zeros((3,2))))
-    s = np.linalg.lstsq(A,b)[0]
-    s0 = s[0:target_pts.shape[0],:]
-    s1 = s[target_pts.shape[0]+1:,:]
-    c = s[target_pts.shape[0],:]
-    x_i_minus_x_j = np.tile(vector2d,target_pts.shape[0]).reshape(vector2d.shape[0],target_pts.shape[0],2)-target_pts
-    x_i_minus_x_j = np.sqrt( np.sum( x_i_minus_x_j**2,2))
-    g_x_i_minus_x_j = scipy.stats.norm.pdf(x_i_minus_x_j,0,alpha)
-    resvector2d = g_x_i_minus_x_j.dot(s0)+vector2d.dot(s1)+c
-    iresvector2d = resvector2d.astype(int)
-    resrow = iresvector2d[:,0].reshape(warped_image.shape[0],warped_image.shape[1])
-    rescol = iresvector2d[:,1].reshape(warped_image.shape[0],warped_image.shape[1])
-    resrown = np.clip(resrow,0,warped_image.shape[0]-1)
-    rescoln = np.clip(rescol,0,warped_image.shape[1]-1)
-    new_warped_image = warped_image[resrown,rescoln]
-    warped_image[resrown[target_pts[0,0],target_pts[0,1]],rescoln[target_pts[0,0],target_pts[0,1]]]
-    new_warped_image[source_pts[0,0],source_pts[0,1]]  
-    return new_warped_image
+    #调整参数,影响范围大概为所选线段平均长度
+    alpha = np.sqrt(np.sum((target_pts - source_pts)**2)/target_pts.shape[0])*2
+    #如果希望全局影响，可以考虑下面的参数
+    #alpha = np.sqrt(warped_image.shape[0]*warped_image.shape[1])/3
+    #gm是g(|x_i-x_j|),g取$mu=0$的高斯函数
+    gm = scipy.stats.norm.pdf(np.sqrt(np.sum( (np.reshape(np.tile(target_pts,target_pts.shape[0]),(target_pts.shape[0],target_pts.shape[0],2) ) - target_pts)**2,2)),0,alpha)
+    #偏移为 \sum_i a_i g_i(|x_from-x_i|) = x_to-x_from
+    b =  source_pts - target_pts
+    #gm a = b 系数a_i,计算每个点的偏移来插值
+    a = np.linalg.lstsq(gm,b)[0]
+    #计算新位置
+    gn=scipy.stats.norm.pdf(np.sqrt(np.sum( (np.reshape(np.tile(vector2d,target_pts.shape[0]),(vector2d.shape[0],target_pts.shape[0],2) ) - target_pts)**2,2)),0,alpha)
+    #系数乘以顶点位置加顶点位置就是新位置
+    res = gn.dot(a) + vector2d
+    #获取新图片
+    resn = res.astype(int)
+    resnr = resn[:,0].reshape(image.shape[0],image.shape[1])
+    resnc = resn[:,1].reshape(image.shape[0],image.shape[1])
+    blank = np.logical_or( np.logical_or(resnc<0 ,resnr<0) ,np.logical_or(resnc>=warped_image.shape[1],resnr>=warped_image.shape[0]))
+    n_warped_image = warped_image[np.clip(resnr,0,warped_image.shape[0]-1),np.clip(resnc,0,warped_image.shape[1]-1) ]
+    n_warped_image[blank] = [255,255,255]
+    return n_warped_image
 
 def run_warping():
     global points_src, points_dst, image ### fetch global variables
