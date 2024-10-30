@@ -23,15 +23,23 @@ $$
 ### 2. Pix2Pix implementation.
 
 #### facades
+
 train结果
+
 ![alt text](pics/facades_train_res_240.png)
+
 val结果
+
 ![alt text](pics/facades_val_res_240.png)
 
 #### edges2shoes
+
 train结果
+
 ![alt text](pics/edge_shoes_train_res_135.png)
+
 val结果
+
 ![alt text](pics/edge_shoes_val_res_135.png)
 
 
