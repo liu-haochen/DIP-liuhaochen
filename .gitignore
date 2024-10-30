@@ -1,3 +1,5 @@
 test
 *.ipynb
 datasets
+train_results
+val_results

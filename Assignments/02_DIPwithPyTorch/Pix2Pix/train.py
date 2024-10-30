@@ -83,7 +83,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, epoch, num_
 
         # Save sample images every 5 epochs
         if epoch % 5 == 0 and i == 0:
-            save_images(image_rgb, image_semantic, outputs, 'train_results', epoch)
+            save_images(image_rgb, image_semantic, outputs, r'Assignments\02_DIPwithPyTorch\Pix2Pix\train_results', epoch)
 
         # Compute the loss
         loss = criterion(outputs, image_semantic)
@@ -128,7 +128,7 @@ def validate(model, dataloader, criterion, device, epoch, num_epochs):
 
             # Save sample images every 5 epochs
             if epoch % 5 == 0 and i == 0:
-                save_images(image_rgb, image_semantic, outputs, 'val_results', epoch)
+                save_images(image_rgb, image_semantic, outputs, r'Assignments\02_DIPwithPyTorch\Pix2Pix\val_results', epoch)
 
     # Calculate average validation loss
     avg_val_loss = val_loss / len(dataloader)
@@ -140,13 +140,13 @@ def main():
     """
     # Set device to GPU if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+    print(device)
     # Initialize datasets and dataloaders
     train_dataset = FacadesDataset(list_file=r'Assignments\02_DIPwithPyTorch\Pix2Pix\train_list.txt')
     val_dataset = FacadesDataset(list_file=r'Assignments\02_DIPwithPyTorch\Pix2Pix\val_list.txt')
 
-    train_loader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=100, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=50, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=50, shuffle=False, num_workers=4)
 
     # Initialize model, loss function, and optimizer
     model = FullyConvNetwork().to(device)
@@ -167,8 +167,8 @@ def main():
 
         # Save model checkpoint every 20 epochs
         if (epoch + 1) % 20 == 0:
-            os.makedirs('checkpoints', exist_ok=True)
-            torch.save(model.state_dict(), f'checkpoints/pix2pix_model_epoch_{epoch + 1}.pth')
+            os.makedirs(r'Assignments\02_DIPwithPyTorch\Pix2Pix\checkpoints', exist_ok=True)
+            torch.save(model.state_dict(), r'Assignments\02_DIPwithPyTorch\Pix2Pix\checkpoints\pix2pix_model_epoch_{epoch + 1}.pth')
 
 if __name__ == '__main__':
     main()
