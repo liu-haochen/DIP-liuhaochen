@@ -1,8 +1,7 @@
 ## Pix2Pix
 
-
-
 train 
+
 ![alt text](pics/image.png)
 
 val

@@ -1,0 +1,3 @@
+[submodule "Assignments/03_PlayWithGANs/autoFaceEdit/DragGAN"]
+	path = Assignments/03_PlayWithGANs/autoFaceEdit/DragGAN
+	url = git@github.com:XingangPan/DragGAN.git
